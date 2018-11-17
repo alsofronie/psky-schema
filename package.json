@@ -1,0 +1,22 @@
+{
+  "name": "schema",
+  "version": "1.0.0",
+  "description": "Validates a payload against types and rules",
+  "main": "src/schema.js",
+  "scripts": {
+    "test": "mocha",
+    "test:watch": "mocha -w",
+    "lint": "eslint src/**/*.js"
+  },
+  "keywords": [
+      "privatesky",
+      "validation",
+      "schema"
+  ],
+  "author": "Alex Sofronie <alsofronie@gmail.com",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^5.8.0",
+    "mocha": "^5.2.0"
+  }
+}

@@ -1,6 +1,10 @@
 var deepCopy = require('./lib/deep-copy');
 var normalizeDefinition = require('./lib/normalize-definition');
 
+var isAFunction = function (func) {
+    return func && {}.toString.call(func) === '[object Function]';
+};
+
 var rex = (value, rule) => {
     if (!rule) {
 
@@ -131,7 +135,7 @@ var Schema = function (definition) {
      * 
      * @param {string} type The type
      */
-    function getTypeValidator(type) {
+    function getTypeValidator (type) {
         return (localTypes[type] ? localTypes[type] : (types[type] ? types[type] : null));
     }
 
@@ -141,7 +145,7 @@ var Schema = function (definition) {
      * @param {string} type 
      * @param {string} rule 
      */
-    function getRuleValidator(type, rule) {
+    function getRuleValidator (type, rule) {
         var cpx = rule + ':' + type;
         return (localRules[cpx] ? localRules[cpx] : (localRules[rule] ? localRules[rule] : (rules[cpx] ? rules[cpx] : (rules[rule] ? rules[rule] : null))));
     }
@@ -153,7 +157,7 @@ var Schema = function (definition) {
      * @param {object} definition The full definition
      * @param {bool} sense True for packing, false for unpacking
      */
-    function prepare(value, definition, sense) {
+    function prepare (value, definition, sense) {
 
         if (packers[definition.type]) {
             return packers[definition.type](value);
@@ -204,8 +208,15 @@ var Schema = function (definition) {
      * Register a new type, together with a validator and a packer function
      */
     this.register = function (type, validator, packer) {
-        localTypes[type] = validator;
-        localPackers[type] = packer;
+        if (isAFunction(validator)) {
+            localTypes[type] = validator;
+        } else if (validator) {
+            var schema = this;
+            localTypes[type] = function (value) {
+                return schema.check(value, validator, type);
+            };
+            localPackers[type] = packer;
+        }
     };
 
     /**
@@ -367,7 +378,13 @@ var Schema = function (definition) {
  * Static function for registering a new type globally
  */
 Schema.register = function (type, validator, packer) {
-    types[type] = validator;
+    if (isAFunction(validator)) {
+        types[type] = validator;
+    } else if (validator) {
+        types[type] = function (value, schema) {
+            return schema.check(value, validator, type);
+        };
+    }
     packers[type] = packer;
 };
 

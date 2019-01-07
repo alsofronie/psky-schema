@@ -366,7 +366,7 @@ describe('Validating types', () => {
         );
     });
 
-    it('should correctly validate a custom type registered locally by using built-in check', () => {
+    it('should correctly validate a custom type registered locally using built-in check', () => {
         var schema = new Schema({ person: '@person' });
         schema.register('@person', function (value) {
             return schema.check(value, {
@@ -391,6 +391,99 @@ describe('Validating types', () => {
         });
 
         assert.equal(schema.validate({ person: { name: 'Bill Gates', age: 60, profession: 'developer' } }), true);
+    });
+
+    it('should validate a simple custom type registered locally using rule defs', () => {
+        var schema = new Schema({ foo: '@number' });
+        schema.register('@number', {
+            type: 'integer',
+            min: 10,
+            max: 20
+        });
+        assert.equal(schema.validate({ foo: 15 }), true);
+    });
+
+    it('should validate a simple custom type registered globally using rule defs', () => {
+        Schema.register('@number', {
+            type: 'integer',
+            min: 10,
+            max: 20
+        });
+
+        var schema = new Schema({ foo: '@number' });
+        assert.equal(schema.validate({ foo: 15 }), true);
+    });
+
+    it('should invalidate a simple custom type registered globally using rule defs', () => {
+        Schema.register('@number', {
+            type: 'integer',
+            min: 10,
+            max: 20
+        });
+
+        var schema = new Schema({ foo: '@number' });
+        assert.throws(
+            () => schema.validate({ foo: 21 }),
+            (err) => (err.error === true)
+        );
+    });
+
+    it('should correctly validate a complex object registered locally using rule defs', () => {
+        var schema = new Schema({ person: '@person' });
+        schema.register('@person', {
+            type: 'object',
+            '*': {
+                name: {
+                    type: 'string',
+                    required: true
+                },
+                age: {
+                    type: 'integer',
+                    required: true,
+                    min: 18,
+                },
+                profession: {
+                    type: 'string',
+                    required: true,
+                    in: ['programmer', 'developer', 'designer']
+                }
+            }
+        });
+
+        assert.equal(schema.validate({ person: { name: 'Bill Gates', age: 60, profession: 'developer' } }), true);
+    });
+
+    it('should correctly invalidate a complex object registered locally using rule defs', () => {
+        var schema = new Schema({ person: '@person' });
+        schema.register('@person', {
+            type: 'object',
+            '*': {
+                name: {
+                    type: 'string',
+                    required: true
+                },
+                age: {
+                    type: 'integer',
+                    required: true,
+                    min: 18,
+                },
+                profession: {
+                    type: 'string',
+                    required: true,
+                    in: ['programmer', 'developer', 'designer']
+                }
+            }
+        });
+
+        assert.throws(
+            () => schema.validate(schema.validate({ person: { name: 'Sheldon Cooper', age: 11, profession: 'scientist' } })),
+            (err) => (err.error === true)
+        );
+
+        assert.throws(
+            () => schema.validate(schema.validate({ person: { name: 'Mark Twain', age: 55, profession: 'writer' } })),
+            (err) => (err.error === true)
+        );
     });
 
     it('should correctly pick the local validation over global one', () => {

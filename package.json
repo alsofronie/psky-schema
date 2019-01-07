@@ -9,9 +9,9 @@
     "lint": "eslint src/**/*.js"
   },
   "keywords": [
-      "privatesky",
-      "validation",
-      "schema"
+    "privatesky",
+    "validation",
+    "schema"
   ],
   "author": "Alex Sofronie <alsofronie@gmail.com",
   "license": "ISC",

@@ -8,13 +8,7 @@ var isAFunction = function (func) {
 var rex = (value, rule) => {
     if (!rule) {
 
-        throw {
-            error: true,
-            code: 'invalid',
-            type: 'pattern',
-            details: '',
-            message: 'The regexp rule is not specified',
-        };
+        throw new Error('The regexp rule is not specified');
     }
 
     value = '' + value;
@@ -36,6 +30,7 @@ var types = {
     'array': (value) => Array.isArray(value),
     'object': (value) => (value !== null && (!Array.isArray(value) && typeof value === 'object')),
     'mixed': () => true,
+    'function': (value) => !!(value && value.constructor && value.call && value.apply),
     'date': (value) => (value && value instanceof Date),
     'number': (value) => (value && value instanceof Number),
     'regexp': (value) => (value && value instanceof RegExp),
@@ -238,13 +233,7 @@ var Schema = function (definition) {
         var typeValidator = getTypeValidator(type);
 
         if (!typeValidator) {
-            throw {
-                error: true,
-                code: 'unknown:type',
-                type: type,
-                details: key,
-                message: 'Unknown type: ' + type + ' for ' + key,
-            };
+            throw new Error('Unknown type: ' + type + ' for ' + key);
         }
 
         // Nullable processing first
@@ -255,25 +244,13 @@ var Schema = function (definition) {
         // Required processing next
         var ruleRequired = getRuleValidator(type, 'required');
         if (def.required && ruleRequired(value, def, this) !== true) {
-            throw {
-                error: true,
-                code: 'validation',
-                type: 'required',
-                details: key,
-                message: 'Required ' + key,
-            };
+            throw new Error('Required ' + key);
         } else if (!def.required && value === undefined) {
             return true;
         }
 
         if (!typeValidator(value, this)) {
-            throw {
-                error: true,
-                code: 'validation',
-                type: type,
-                details: key,
-                message: value + ' is not ' + type + ' for ' + key,
-            };
+            throw new Error(value + ' (' + (typeof value) + ') is not ' + type + ' for ' + key);
         }
 
         Object.keys(def).forEach(chk => {
@@ -282,23 +259,11 @@ var Schema = function (definition) {
                 var rule = getRuleValidator(type, chk);
 
                 if (!rule) {
-                    throw {
-                        error: true,
-                        code: 'unknown:rule',
-                        type: chk,
-                        details: key,
-                        message: 'Unknown rule ' + rule + ' for ' + key
-                    };
+                    throw new Error('Unknown rule ' + rule + ' for ' + key);
                 }
 
                 if (rule(value, def, this) !== true) {
-                    throw {
-                        error: true,
-                        code: 'validation',
-                        type: chk,
-                        details: key,
-                        message: 'Invalid value at rule ' + chk + ' (' + chk + ':' + type + ') for ' + key
-                    };
+                    throw new Error('Invalid value at rule ' + chk + ' (' + chk + ':' + type + ') for ' + key);
                 }
             }
         });
@@ -311,13 +276,7 @@ var Schema = function (definition) {
      */
     this.validate = function (payload) {
         if (!def) {
-            throw {
-                error: true,
-                code: 'empty',
-                type: 'definition',
-                details: '',
-                message: 'Invalid or empty definition',
-            };
+            throw new Error('Invalid or empty definition');
         }
 
         Object.keys(def).forEach(field => this.check(payload[field], def[field], field));

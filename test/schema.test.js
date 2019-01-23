@@ -93,7 +93,7 @@ describe('Validating types', () => {
             it('should fail for ' + typeof val.age + ' value', () => {
                 assert.throws(
                     () => validator(val, { age: 'integer' }),
-                    (err) => err.error
+                    (err) => (err instanceof Error)
                 );
             });
         });
@@ -121,7 +121,7 @@ describe('Validating types', () => {
             it('should fail for ' + typeof val.name + ' value', () => {
                 assert.throws(
                     () => validator(val, { name: 'string' }),
-                    (err) => err.error
+                    (err) => (err instanceof Error)
                 );
             });
         });
@@ -164,7 +164,7 @@ describe('Validating types', () => {
             it('should fail for ' + typeof val.price + ' value', () => {
                 assert.throws(
                     () => validator(val, { price: 'float' }),
-                    (err) => err.error
+                    (err) => (err instanceof Error)
                 );
             });
         });
@@ -194,7 +194,7 @@ describe('Validating types', () => {
             it('should fail for ' + typeof val.name + ' value', () => {
                 assert.throws(
                     () => validator(val, { name: 'bool' }),
-                    (err) => err.error
+                    (err) => (err instanceof Error)
                 );
             });
         });
@@ -231,7 +231,7 @@ describe('Validating types', () => {
             it('should fail for ' + val.born_at + ' invalid date', () => {
                 assert.throws(
                     () => validator(val, { born_at: 'iso_date_long' }),
-                    (err) => err.error
+                    (err) => (err instanceof Error)
                 );
             });
         });
@@ -257,7 +257,7 @@ describe('Validating types', () => {
             it('should fail for ' + typeof val.options + ' value', () => {
                 assert.throws(
                     () => validator(val, { options: 'array' }),
-                    (err) => err.error
+                    (err) => (err instanceof Error)
                 );
             });
         });
@@ -276,7 +276,7 @@ describe('Validating types', () => {
         it('should fail for array value', () => {
             assert.throws(
                 () => validator({ options: ['Peter', 'Pan'] }, { options: 'object' }),
-                (err) => err.error
+                (err) => (err instanceof Error)
             );
         });
 
@@ -289,9 +289,80 @@ describe('Validating types', () => {
             it('should fail for ' + typeof val.options + ' value', () => {
                 assert.throws(
                     () => validator(val, { options: 'object' }),
-                    (err) => err.error
+                    (err) => (err instanceof Error)
                 );
             });
+        });
+    });
+
+    describe('Function', () => {
+
+        it('should pass for a function definition', () => {
+            let payload = {
+                iterator: 0,
+                phase1 () {
+                    this.iterator += 1;
+                },
+                phase2 () {
+                    return this.iterator > 10;
+                }
+            };
+            let schDef = {
+                phase1: 'function',
+                phase2: 'function',
+                iterator: 'integer',
+            };
+            assert.equal(validator(payload, schDef), true);
+        });
+
+        it('should differentiate between an object and a function', () => {
+            let payload = {
+                iterator: 0,
+                phase1 () {
+                    this.iterator += 1;
+                },
+                phase2 () {
+                    return this.iterator > 10;
+                }
+            };
+            let schDef = {
+                phase1: 'object',
+                phase2: 'function',
+                iterator: 'integer',
+            };
+            assert.throws(
+                () => validator(payload, schDef),
+                (err) => (err instanceof Error)
+            );
+        });
+
+        it('should be able to validate a slightly more complex payload', () => {
+            let payload = {
+                iterator: { val: 0, step: () => { this.iterator.val += 1; } },
+                phase1: () => {
+                    this.iterator.step();
+                },
+                phase2 () { return this.iterator.val > 10; },
+                phase3: new Function('a', 'b', 'return a + b;')
+            };
+            payload.loaders = [payload.phase1, payload.phase2];
+            let schDef = {
+                phase1: 'function',
+                phase2: 'function',
+                phase3: 'function',
+                iterator: {
+                    type: 'object',
+                    '*': {
+                        val: 'integer',
+                        step: 'function'
+                    }
+                },
+                loaders: {
+                    type: 'array',
+                    '*': 'function'
+                }
+            };
+            assert.equal(validator(payload, schDef), true);
         });
     });
 
@@ -342,7 +413,7 @@ describe('Validating types', () => {
 
         assert.throws(
             () => schema.validate({ person: { name: 'Elon Musk', age: 60, profession: 'manager' } }),
-            (err) => (err.error === true)
+            (err) => (err instanceof Error)
         );
     });
 
@@ -362,7 +433,7 @@ describe('Validating types', () => {
 
         assert.throws(
             () => schema.validate({ person: { name: 'Elon Musk', age: 60, profession: 'manager' } }),
-            (err) => (err.error === true)
+            (err) => (err instanceof Error)
         );
     });
 
@@ -424,7 +495,7 @@ describe('Validating types', () => {
         var schema = new Schema({ foo: '@number' });
         assert.throws(
             () => schema.validate({ foo: 21 }),
-            (err) => (err.error === true)
+            (err) => (err instanceof Error)
         );
     });
 
@@ -477,12 +548,12 @@ describe('Validating types', () => {
 
         assert.throws(
             () => schema.validate(schema.validate({ person: { name: 'Sheldon Cooper', age: 11, profession: 'scientist' } })),
-            (err) => (err.error === true)
+            (err) => (err instanceof Error)
         );
 
         assert.throws(
             () => schema.validate(schema.validate({ person: { name: 'Mark Twain', age: 55, profession: 'writer' } })),
-            (err) => (err.error === true)
+            (err) => (err instanceof Error)
         );
     });
 
@@ -502,12 +573,12 @@ describe('Validating types', () => {
         assert.equal(schema.validate({ person: { name: 'Anakin' } }), true);
         assert.throws(
             () => schema.validate({ person: { name: 'Vader' } }),
-            (err) => (err.error === true)
+            (err) => (err instanceof Error)
         );
         assert.equal(anotherSchema.validate({ person: { name: 'Vader' } }), true);
         assert.throws(
             () => anotherSchema.validate({ person: { name: 'Anakin' } }),
-            (err) => (err.error === true)
+            (err) => (err instanceof Error)
         );
     });
 });
@@ -535,7 +606,7 @@ describe('Validating rules', () => {
         it('should fail for an undefined value', () => {
             assert.throws(
                 () => validator({ property: '' }, { valid: { type: 'mixed', required: true } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
     });
@@ -553,7 +624,7 @@ describe('Validating rules', () => {
         it('should fail for invalid integer', () => {
             assert.throws(
                 () => validator({ age: 18 }, { age: { type: 'integer', min: 19 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -568,7 +639,7 @@ describe('Validating rules', () => {
         it('should fail for invalid float', () => {
             assert.throws(
                 () => validator({ age: 18.123 }, { age: { type: 'float', min: 18.124 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -583,14 +654,14 @@ describe('Validating rules', () => {
         it('should fail for invalid string length', () => {
             assert.throws(
                 () => validator({ name: 'Albert Einstein' }, { name: { type: 'string', min: 16 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
         it('should fail for empty string', () => {
             assert.throws(
                 () => validator({ name: '' }, { name: { type: 'string', min: 16 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -605,14 +676,14 @@ describe('Validating rules', () => {
         it('should fail for invalid array length', () => {
             assert.throws(
                 () => validator({ options: [1, 2, 3, 4] }, { options: { type: 'array', min: 5 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
         it('should fail for empty array', () => {
             assert.throws(
                 () => validator({ options: [] }, { options: { type: 'array', min: 16 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -631,7 +702,7 @@ describe('Validating rules', () => {
         it('should fail for invalid integer', () => {
             assert.throws(
                 () => validator({ age: 18 }, { age: { type: 'integer', max: 17 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -646,7 +717,7 @@ describe('Validating rules', () => {
         it('should fail for invalid string length', () => {
             assert.throws(
                 () => validator({ name: 'Albert Einstein' }, { name: { type: 'string', max: 14 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -665,7 +736,7 @@ describe('Validating rules', () => {
         it('should fail for invalid array length', () => {
             assert.throws(
                 () => validator({ options: [1, 2, 3, 4] }, { options: { type: 'array', max: 3 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -688,14 +759,14 @@ describe('Validating rules', () => {
         it('should fail for non-equal integer value', () => {
             assert.throws(
                 () => validator({ age: 18 }, { age: { type: 'integer', exact: 17 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
         it('should fail for negative non-equal integer value', () => {
             assert.throws(
                 () => validator({ age: -18 }, { age: { type: 'integer', exact: -17 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -706,14 +777,14 @@ describe('Validating rules', () => {
         it('should fail for non-equal string length', () => {
             assert.throws(
                 () => validator({ name: 'Albert Einstein' }, { name: { type: 'string', exact: 16 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
         it('should fail for non-equal string length', () => {
             assert.throws(
                 () => validator({ name: 'Albert Einstein' }, { name: { type: 'string', exact: 14 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -724,21 +795,21 @@ describe('Validating rules', () => {
         it('should fail for non-equal array length', () => {
             assert.throws(
                 () => validator({ options: [1, 2, 3, 4] }, { options: { type: 'array', exact: 5 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
         it('should fail for non-equal array length', () => {
             assert.throws(
                 () => validator({ options: [1, 2, 3, 4] }, { options: { type: 'array', exact: 3 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
         it('should fail for empty array', () => {
             assert.throws(
                 () => validator({ options: [] }, { options: { type: 'array', exact: 1 } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -757,21 +828,21 @@ describe('Validating rules', () => {
         it('should fail for strings with digits', () => {
             assert.throws(
                 () => validator({ name: 'Kink Louis The 14th' }, { name: { type: 'string', alpha: true } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
         it('should fail for strings with comma', () => {
             assert.throws(
                 () => validator({ name: 'Help me, please' }, { name: { type: 'string', alpha: true } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
         it('should fail for strings with dots', () => {
             assert.throws(
                 () => validator({ name: 'Here we go...' }, { name: { type: 'string', alpha: true } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -790,7 +861,7 @@ describe('Validating rules', () => {
         it('should fail for string with exclamation mark', () => {
             assert.throws(
                 () => validator({ name: 'I got you, babe!' }, { name: { type: 'string', alphanumeric: true } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -805,7 +876,7 @@ describe('Validating rules', () => {
         it('should fail for invalid integer', () => {
             assert.throws(
                 () => validator({ age: 17 }, { age: { type: 'integer', in: [11, 12, 13, 18, 19] } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -816,7 +887,7 @@ describe('Validating rules', () => {
         it('should fail for invalid string', () => {
             assert.throws(
                 () => validator({ name: 'Vader' }, { name: { type: 'string', in: ['Luke', 'Leia', 'Yoda'] } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -827,7 +898,7 @@ describe('Validating rules', () => {
         it('should fail for invalid array values', () => {
             assert.throws(
                 () => validator({ options: [1, 2, 3, 4, 1, 3, 2] }, { options: { type: 'array', in: [1, 2, 3] } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -842,7 +913,7 @@ describe('Validating rules', () => {
         it('should fail for present integer', () => {
             assert.throws(
                 () => validator({ age: 18 }, { age: { type: 'integer', not_in: [11, 12, 13, 18, 19] } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -853,7 +924,7 @@ describe('Validating rules', () => {
         it('should fail for present string', () => {
             assert.throws(
                 () => validator({ name: 'Luke' }, { name: { type: 'string', not_in: ['Luke', 'Leia', 'Yoda'] } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -864,7 +935,7 @@ describe('Validating rules', () => {
         it('should fail for invalid array values', () => {
             assert.throws(
                 () => validator({ options: [1, 2, 3, 4, 1, 3, 2] }, { options: { type: 'array', not_in: [0, 4, 5] } }),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
 
@@ -893,7 +964,7 @@ describe('Validating rules', () => {
             var failing = { ages: [18, 19, 25, 30] };
             assert.throws(
                 () => validator(failing, def),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
     });
@@ -932,7 +1003,7 @@ describe('Validating rules', () => {
             };
             assert.throws(
                 () => validator({ actor: oldActor }, def),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
     });
@@ -971,7 +1042,7 @@ describe('Validating rules', () => {
             ];
             assert.throws(
                 () => validator({ actors }, def),
-                (err) => (err.error === true)
+                (err) => (err instanceof Error)
             );
         });
     });

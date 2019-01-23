@@ -1080,3 +1080,262 @@ describe('Serializer', () => {
 
     });
 });
+
+
+describe('Exclusive', () => {
+
+    it('should have global exclusive option default to false', () => {
+        assert.strictEqual(Schema.exclusive(), false);
+    });
+
+    it('should be able to set global exclusive mode', () => {
+        const initial = Schema.exclusive();
+        const changed = !initial;
+        assert.strictEqual(Schema.exclusive(), initial);
+        assert.strictEqual(initial !== changed, true);
+        Schema.exclusive(changed);
+        assert.strictEqual(Schema.exclusive(), changed);
+        Schema.exclusive(initial);
+        assert.strictEqual(Schema.exclusive(), initial);
+    });
+
+    it('global exclusive setter should be fluent', () => {
+        const ex = Schema.exclusive();
+        assert.equal(typeof ex === 'boolean', true);
+        assert.deepEqual(Schema.exclusive(ex), Schema);
+    });
+
+    it('should be able to pass correctly formed object', () => {
+
+        const initial = Schema.exclusive();
+        Schema.exclusive(true);
+
+        const sch = new Schema({
+            name: 'string',
+            profession: 'string',
+            age: 'integer'
+        });
+
+        assert.equal(sch.validate({ name: 'Thor', profession: 'God', age: 93800 }), true);
+        Schema.exclusive(initial);
+    });
+
+    it('should be able to detect a foreign property', () => {
+
+        const initial = Schema.exclusive();
+        Schema.exclusive(true);
+
+        const sch = new Schema({
+            name: 'string',
+            profession: 'string',
+            age: 'integer'
+        });
+
+        assert.throws(
+            () => sch.validate({ name: 'Loki', profession: 'trickster', age: 99845, trick: 'neat one' }),
+            (err) => {
+                // make everything as it was, not to mess other tests, as this is a global option
+                Schema.exclusive(initial);
+                return err.message.indexOf('xclusive') >= 0;
+            }
+        );
+    });
+
+    it('should be able to detect a foreign property on complex type', () => {
+
+        const initial = Schema.exclusive();
+        Schema.exclusive(true);
+
+        const sch = new Schema({
+            person: {
+                type: 'object',
+                '*': {
+                    name: 'string',
+                    profession: 'string',
+                    age: 'integer'
+                }
+            }
+        });
+
+        assert.throws(
+            () => sch.validate({
+                person: {
+                    name: 'Loki',
+                    profession: 'trickster',
+                    age: 99845,
+                    trick: 'neat one'
+                }
+            }),
+            (err) => {
+                // make everything as it was, not to mess other tests, as this is a global option
+                Schema.exclusive(initial);
+                return err.message.indexOf('xclusive') >= 0;
+            }
+        );
+    });
+
+    it('should be able to detect a foreign property on an array', () => {
+
+        const initial = Schema.exclusive();
+        Schema.exclusive(true);
+
+        const sch = new Schema({
+            person: {
+                type: 'object',
+                '*': {
+                    name: 'string',
+                    profession: 'string',
+                    age: 'integer',
+                    friends: {
+                        type: 'array',
+                        '*': {
+                            type: 'object',
+                            '*': {
+                                name: 'string'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        assert.throws(
+            () => sch.validate({
+                person: {
+                    name: 'Jack Sparrow',
+                    profession: 'pirate',
+                    age: 60,
+                    friends: [
+                        { name: 'Barbossa' },
+                        { name: 'Blackbeard' },
+                        { name: 'Davy Jones', enemy: true },
+                        { name: 'Will Turner' }
+                    ]
+                }
+            }),
+            (err) => {
+                // make everything as it was, not to mess other tests, as this is a global option
+                Schema.exclusive(initial);
+                return err.message.indexOf('xclusive') >= 0;
+            }
+        );
+    });
+
+    it('should be able to pass exclusive option on validate function', () => {
+
+        const sch = new Schema({
+            name: 'string',
+            profession: 'string',
+            age: 'integer'
+        });
+
+        assert.throws(
+            () => sch.validate({ name: 'Loki', profession: 'trickster', age: 99845, trick: 'neat one' }, true),
+            (err) => {
+                return err.message.indexOf('xclusive') >= 0;
+            }
+        );
+    });
+
+
+
+    //=======================================================================
+
+    it('should be able to pass correctly formed object locally', () => {
+
+        const sch = new Schema({
+            name: 'string',
+            profession: 'string',
+            age: 'integer'
+        });
+
+        assert.equal(sch.validate({ name: 'Thor', profession: 'God', age: 93800 }, true), true);
+        assert.strictEqual(Schema.exclusive(), false);
+    });
+
+    it('should be able to detect a foreign property locally', () => {
+
+        const sch = new Schema({
+            name: 'string',
+            profession: 'string',
+            age: 'integer'
+        });
+
+        assert.throws(
+            () => sch.validate({ name: 'Loki', profession: 'trickster', age: 99845, trick: 'neat one' }, true),
+            (err) => {
+                return err.message.indexOf('xclusive') >= 0;
+            }
+        );
+    });
+
+    it('should be able to detect a foreign property on complex type locally', () => {
+
+
+        const sch = new Schema({
+            person: {
+                type: 'object',
+                '*': {
+                    name: 'string',
+                    profession: 'string',
+                    age: 'integer'
+                }
+            }
+        });
+
+        assert.throws(
+            () => sch.validate({
+                person: {
+                    name: 'Loki',
+                    profession: 'trickster',
+                    age: 99845,
+                    trick: 'neat one'
+                }
+            }, true),
+            (err) => {
+                return err.message.indexOf('xclusive') >= 0;
+            }
+        );
+    });
+
+    it('should be able to detect a foreign property on an array', () => {
+        const sch = new Schema({
+            person: {
+                type: 'object',
+                '*': {
+                    name: 'string',
+                    profession: 'string',
+                    age: 'integer',
+                    friends: {
+                        type: 'array',
+                        '*': {
+                            type: 'object',
+                            '*': {
+                                name: 'string'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        assert.throws(
+            () => sch.validate({
+                person: {
+                    name: 'Jack Sparrow',
+                    profession: 'pirate',
+                    age: 60,
+                    friends: [
+                        { name: 'Barbossa' },
+                        { name: 'Blackbeard' },
+                        { name: 'Davy Jones', enemy: true },
+                        { name: 'Will Turner' }
+                    ]
+                }
+            }, true),
+            (err) => {
+                return err.message.indexOf('xclusive') >= 0;
+            }
+        );
+    });
+});

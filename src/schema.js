@@ -1,9 +1,12 @@
 var deepCopy = require('./lib/deep-copy');
 var normalizeDefinition = require('./lib/normalize-definition');
+var checkExclusive = require('./lib/check-exclusive');
 
 var isAFunction = function (func) {
-    return func && {}.toString.call(func) === '[object Function]';
+    return func && func.call && func.apply && {}.toString.call(func) === '[object Function]';
 };
+
+var globalExclusive = false;
 
 var rex = (value, rule) => {
     if (!rule) {
@@ -30,7 +33,7 @@ var types = {
     'array': (value) => Array.isArray(value),
     'object': (value) => (value !== null && (!Array.isArray(value) && typeof value === 'object')),
     'mixed': () => true,
-    'function': (value) => !!(value && value.constructor && value.call && value.apply),
+    'function': (value) => isAFunction(value),
     'date': (value) => (value && value instanceof Date),
     'number': (value) => (value && value instanceof Number),
     'regexp': (value) => (value && value instanceof RegExp),
@@ -274,12 +277,22 @@ var Schema = function (definition) {
     /**
      * Main validation function
      */
-    this.validate = function (payload) {
+    this.validate = function (payload, exclusiveMode) {
         if (!def) {
             throw new Error('Invalid or empty definition');
         }
 
+        let exclusive = ((exclusiveMode === true || exclusiveMode === false) ? exclusiveMode : globalExclusive);
+
+        if (exclusive) {
+            const msg = checkExclusive(def, payload);
+            if (msg !== false) {
+                throw new Error(msg);
+            }
+        }
+
         Object.keys(def).forEach(field => this.check(payload[field], def[field], field));
+
         return true;
     };
 
@@ -352,6 +365,15 @@ Schema.register = function (type, validator, packer) {
  */
 Schema.extend = function (rule, validator) {
     rules[rule] = validator;
+};
+
+Schema.exclusive = function (should) {
+    if (should === true || should === false) {
+        globalExclusive = should;
+        return Schema;
+    }
+
+    return globalExclusive;
 };
 
 module.exports = Schema;

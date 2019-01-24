@@ -80,6 +80,7 @@ These types are directly supported by JSON format and they should be received as
  - `number` - an instance of a Number JS object
  - `regex` - an instance of a Regexp JS object
  - `object` - a Javascript object
+ ' `function` - a Javascript function
 
 ### Derived types
 
@@ -482,3 +483,29 @@ schema.validate({
 ```
 
 The *local* and *global* methods are also available for `extend`.
+
+## Exclusive schema
+
+Sometimes we need to validate an object exclusively against a schema, meaning the object must have exactly the properties and methods described and nothing else. As always, there are two options to set exclusive mode, globally or locally.
+
+The global method can be called in three ways: without argument is a getter that returns the current mode and with a boolean (true or false) argument, the method is a **fluent** setter.
+
+```
+// Get the currently exclusive mode value (boolean)
+const mode = Schema.exclusive();
+
+// Globally set exclusive mode. This method is fluent.
+Schema.exclusive(true);
+
+// Globally unset the exclusive mode. This method is fluent.
+Schema.exclusive(false);
+```
+
+Locally, the exclusive mode is set on validation, for each validation:
+
+```
+var schema = new Schema({ name:'string' });
+schema.validate({ name: 'Frodo'}, true);
+```
+
+If the second argument on the `validate` function is present and boolean, it will override any globally set mode.

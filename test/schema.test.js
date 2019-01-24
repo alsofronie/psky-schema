@@ -1338,4 +1338,25 @@ describe('Exclusive', () => {
             }
         );
     });
+
+    it('should be able to override the global exclusive mode in instance as false', () => {
+        const initial = Schema.exclusive();
+        Schema.exclusive(true);
+        let sch = new Schema({ name: 'string' });
+        assert.equal(sch.validate({ name: 'Kurt Cobain', profession: 'actor' }, false), true);
+        Schema.exclusive(initial);
+    });
+
+    it('should be able to override the global exclusive mode in instance as true', () => {
+        const initial = Schema.exclusive();
+        Schema.exclusive(false);
+        let sch = new Schema({ name: 'string' });
+        assert.throws(
+            () => sch.validate({ name: 'Kurt Cobain', profession: 'actor' }, true),
+            (err) => {
+                Schema.exclusive(initial);
+                return err instanceof Error;
+            }
+        );
+    });
 });

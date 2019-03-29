@@ -2,6 +2,9 @@
 var assert = require('assert');
 var Schema = require('./../src/schema');
 
+// TODO: test the dictionary
+// TODO: test the error message
+
 var validator = function (obj, definition) {
     var schema = new Schema(definition);
     return schema.validate(obj);
@@ -1082,7 +1085,7 @@ describe('Serializer', () => {
 });
 
 
-describe('Exclusive', () => {
+describe('Exclusive mode', () => {
 
     it('should have global exclusive option default to false', () => {
         assert.strictEqual(Schema.exclusive(), false);
@@ -1131,12 +1134,19 @@ describe('Exclusive', () => {
             age: 'integer'
         });
 
+        const payload = {
+            name: 'Loki',
+            profession: 'trickster',
+            age: 99845,
+            trick: 'neat one'
+        };
+
         assert.throws(
-            () => sch.validate({ name: 'Loki', profession: 'trickster', age: 99845, trick: 'neat one' }),
+            () => sch.validate(payload),
             (err) => {
                 // make everything as it was, not to mess other tests, as this is a global option
                 Schema.exclusive(initial);
-                return err.message.indexOf('xclusive') >= 0;
+                return err.message === '@.trick should not exist in exclusive mode';
             }
         );
     });
@@ -1157,19 +1167,21 @@ describe('Exclusive', () => {
             }
         });
 
+        const payload = {
+            person: {
+                name: 'Loki',
+                profession: 'trickster',
+                age: 99845,
+                trick: 'neat one'
+            }
+        };
+
         assert.throws(
-            () => sch.validate({
-                person: {
-                    name: 'Loki',
-                    profession: 'trickster',
-                    age: 99845,
-                    trick: 'neat one'
-                }
-            }),
+            () => sch.validate(payload),
             (err) => {
                 // make everything as it was, not to mess other tests, as this is a global option
                 Schema.exclusive(initial);
-                return err.message.indexOf('xclusive') >= 0;
+                return err.message === ('@.person.trick should not exist in exclusive mode');
             }
         );
     });
@@ -1270,7 +1282,6 @@ describe('Exclusive', () => {
     });
 
     it('should be able to detect a foreign property on complex type locally', () => {
-
 
         const sch = new Schema({
             person: {

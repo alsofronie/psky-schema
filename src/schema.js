@@ -32,6 +32,7 @@ var types = {
     'bool': (value) => (value === true || value === false),
     'array': (value) => Array.isArray(value),
     'object': (value) => (value !== null && (!Array.isArray(value) && typeof value === 'object')),
+    'dictionary': (value) => (value !== null && (!Array.isArray(value) && typeof value === 'object')),
     'mixed': () => true,
     'function': (value) => isAFunction(value),
     'date': (value) => (value && value instanceof Date),
@@ -103,6 +104,7 @@ var rules = {
     '*': () => false,
     '*:array': (value, definition, sch) => (value.forEach((v, i) => sch.check(v, definition['*'], definition['@key'] + '.' + i)) || true),
     '*:object': (value, definition, sch) => (Object.keys(definition['*']).forEach(r => sch.check(value[r], definition['*'][r], definition['@key'] + '.' + r)) || true),
+    '*:dictionary': (value, definition, sch) => (Object.keys(definition['*']).forEach(r => sch.check(value[r], definition['*'], definition['@key'] + '.' + r)) || true),
 };
 
 var casts = {

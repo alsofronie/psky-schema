@@ -92,6 +92,7 @@ All the derived types are represented as strings or integers, having a hint on t
  - `iso_date_short` - a string representation of date and time, in the format `YYYY-MM-DD`;
  - `iso_date_long` - a string representation of date and time, in the format `YYYY-MM-DD HH:mm:ss`;
  - `uuid` - The field under validation must be a valid RFC 4122 (version 1, 3, 4, or 5) universally unique identifier (UUID);
+ - `dictionary` - The field under validation is an object that *acts* as an array (an associative array) in the sense that all the members are of the same type and they can be validated without knowing their names.
 
  > Warning: a type of `mixed` will not trigger a type validation.
 
